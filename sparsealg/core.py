@@ -1,4 +1,6 @@
 import numpy as np
+import sys
+
 
 """
 ---svector---
@@ -50,8 +52,7 @@ class svector:
         if len(index) > 1: raise Exception("Found multi defined elements")
         return None if len(index) == 0 else index[0]
     
-    # svector[i]にvを代入
-    def set(self, i : int, v : float):
+    def __setitem__(self, i : int, v : float):
         index = self.where(i)
         if v == 0.:
             if index is not None:
@@ -69,31 +70,6 @@ class svector:
         index = self.where(i)
         return 0. if index is None else self.values[index]
     
-    def add_at(self, i : int, v : float):
-        index = self.where(i)
-
-        if index is None:
-            self.set(i, v)
-        else:
-            if self.values[index] == -v:
-                self.set(i, 0)
-            else:
-                self.values[index] += v
-    
-    def sub_at(self, i : int, v : float):
-        self.add_at(i, -v)
-    
-    def mul_at(self, i : int, v : float):
-        if v == 0.:
-            self.set(i, 0.)
-        else:
-            index = self.where(i)
-            if index is not None:
-                self.values[index] *= v
-    
-    def div_at(self, i : int, v : float):
-        self.mul_at(i, 1./v)
-    
 
     def __neg__(self):
         return type(self)(self.dim, self.indice, -self.values)
@@ -107,7 +83,7 @@ class svector:
             another = type(self)(self.dim, i, v)
 
         for i, v in zip(another.indice, another.values):
-            output.add_at(i, v)
+            output[i] += v
         
         return output
     
@@ -127,7 +103,7 @@ class svector:
                 index_another = another.where(index)
 
                 if index_another is None:
-                    output.set(index, 0.)
+                    output[index] = 0.
                 else:
                     output.values[i] *= another.values[index_another]
             return output
@@ -141,3 +117,84 @@ class svector:
     
     def __rmul__(self, another):
         return self.__mul__(another)
+    
+    def __matmul__(self, another) -> float:
+        output = 0.
+        for i, v in zip(self.indice, self.values):
+            output += v*another[i]
+        return output
+    
+
+"""
+--- smatrix ---
+祖行列のクラス
+"""
+class smatrix:
+    def __init__(self, M : int, N : int):
+        self.shape = (M, N)
+    
+    def __len__(self) -> int:
+        return self.shape[0]
+    
+    @property
+    def num_nonzero(self) -> int:
+        raise NotImplementedError
+    
+    def check_index(self, i : int, j : int) -> bool:
+        return (i < self.shape[0]) and (j < self.shape[1])
+    
+    def copy(self):
+        raise NotImplementedError
+    
+    def __setitem__(self, key : tuple, v : float):
+        raise NotImplementedError
+    
+    def slice(self, k : int, axis : int = 0) -> svector:
+        raise NotImplementedError
+    
+    def __getitem__(self, key : tuple) -> float:
+        raise NotImplementedError
+    
+    def __add__(self, another):
+        raise NotImplementedError
+    
+    def __radd__(self, another):
+        return self.__add__(another)
+    
+    def __neg__(self):
+        raise NotImplementedError
+    
+    def __sub__(self, another):
+        return self.__add__(-another)
+    
+    def __rsub__(self, another):
+        return (-self).__add__(another)
+    
+    def __mul__(self, another):
+        raise NotImplementedError
+    
+    def __rmul__(self, another):
+        return self.__mul__(another)
+    
+    def __matmul__(self, another):
+        if type(another) == type(self):
+            M = self.shape[0]; N = another.shape[1]
+            output = type(self)(M, N)
+
+            for i in range(M):
+                svec1 = self.slice(i, axis = 0)
+                for j in range(N):
+                    svec2 = another.slice(j, axis = 1)
+                    
+                    output[i,j] = svec1@svec2
+            
+            return output
+        
+        else:
+            output = svector(self.shape[0])
+            for i in range(len(another)):
+                slice_vec = self.slice(i)
+
+                output[i] = slice_vec@another
+            
+            return output
