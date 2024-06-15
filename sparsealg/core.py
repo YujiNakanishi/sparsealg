@@ -118,11 +118,49 @@ class svector:
     def __rmul__(self, another):
         return self.__mul__(another)
     
+    def __truediv__(self, another):
+
+        if type(another) == type(self):
+            vec1 = self.to_dense()
+            vec2 = another.to_dense()
+            output = type(self)(self.dim)
+            output.as_sparse(vec1/vec2)
+
+            return output
+        else:
+            output = self.copy()
+            output.values /= another
+
+            return output
+    
+    def __rtruediv__(self, another):
+        if type(another) != type(self):
+            another = type(self)(self.dim, np.arange(self.dim, dtype = np.int64), another*np.ones(self.dim, dtype = np.float64))
+        
+        return another.__truediv__(self)
+    
     def __matmul__(self, another) -> float:
         output = 0.
         for i, v in zip(self.indice, self.values):
             output += v*another[i]
-        return output
+        return float(output)
+    
+    def to_dense(self) -> np.ndarray:
+        vec = np.zeros(self.dim)
+        for index, value in zip(self.indice, self.values):
+            vec[index] = value
+        
+        return vec
+    
+    def as_sparse(self, vec : np.ndarray):
+        assert len(vec) == self.dim
+        self.indice = np.array([], dtype = np.int64)
+        self.values = np.array([], dtype = np.float64)
+
+        for idx, v in enumerate(vec):
+            if v == 0.: continue #ゼロ要素は無視
+            self.indice = np.append(self.indice, idx)
+            self.values = np.append(self.values, v)
     
 
 """
@@ -144,6 +182,12 @@ class smatrix:
         return (i < self.shape[0]) and (j < self.shape[1])
     
     def copy(self):
+        raise NotImplementedError
+    
+    def to_dense(self) -> np.ndarray:
+        raise NotImplementedError
+    
+    def as_sparse(self, matrix : np.ndarray):
         raise NotImplementedError
     
     def __setitem__(self, key : tuple, v : float):
@@ -198,3 +242,15 @@ class smatrix:
                 output[i] = slice_vec@another
             
             return output
+        
+    
+    def diag(self):
+        raise NotImplementedError
+    def tril(self, k : int = 0):
+        raise NotImplementedError
+    def triu(self, k : int = 0):
+        raise NotImplementedError
+    
+    @property
+    def T(self):
+        raise NotImplementedError

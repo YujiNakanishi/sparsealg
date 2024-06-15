@@ -22,22 +22,6 @@ def to_sparse(vec : np.ndarray) -> svector:
     
     return svector(len(vec), indice, values)
 
-"""
---- to_dense ---
-svectorをnumpyに変換
-
-input:
-    svec -> <svec> 配列
-output:
-    <numpy>
-"""
-def to_dense(svec : svector) -> np.ndarray:
-    vec = np.zeros(svec.dim)
-    for index, value in zip(svec.indice, svec.values):
-        vec[index] = value
-    
-    return vec
-
 
 # svector同士の内積
 def dot(svec1 : svector, svec2 : svector) -> float:
@@ -51,10 +35,17 @@ def power(svec : svector, p : Union[int, float]) -> svector:
     return svector(svec.dim, svec.indice, np.power(svec.values, p))
 
 def sum(svec : svector) -> float:
-    return np.sum(svec.values)
+    return float(np.sum(svec.values))
 
 def abs(svec : svector) -> svector:
     return svector(svec.dim, svec.indice, np.abs(svec.values))
 
 def norm(svec : svector, ord : int = 2) -> float:
-    return np.linalg.norm(svec.values, ord)
+    return float(np.linalg.norm(svec.values, ord))
+
+def rand_uniform(dim) -> svector:
+    a = np.random.rand(dim).astype(np.float64)
+    b = svector(dim)
+    b.as_sparse(a)
+
+    return b

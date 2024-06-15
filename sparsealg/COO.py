@@ -80,27 +80,58 @@ class COO_matrix(smatrix):
                 output[i, j] *= another[i, j]
         
         return output
-
-
-
-def to_dense(coo : COO_matrix) -> np.ndarray:
-    matrix = np.zeros(coo.shape)
-    for i, j, v in zip(coo.row, coo.column, coo.values):
-        matrix[i,j] = v
-    return matrix
-
-def to_sparse(matrix : np.ndarray) -> COO_matrix:
-    shape = matrix.shape
-    row = np.array([], dtype = np.int64)
-    column = np.array([], dtype = np.int64)
-    values = np.array([], dtype = np.float64)
-
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            v = matrix[i, j]
-            if v != 0.:
-                row = np.append(row, i)
-                column = np.append(column, j)
-                values = np.append(values, v)
     
-    return COO_matrix(shape[0], shape[1], row, column, values)
+    def to_dense(self) -> np.ndarray:
+        matrix = np.zeros(self.shape)
+        for i, j, v in zip(self.row, self.column, self.values):
+            matrix[i,j] = v
+        return matrix
+    
+    def as_sparse(self, matrix : np.ndarray):
+        assert matrix.shape == self.shape
+
+        self.row = np.array([], dtype = np.int64)
+        self.column = np.array([], dtype = np.int64)
+        self.values = np.array([], dtype = np.float64)
+
+        for i in range(self.shape[0]):
+            for j in range(self.shape[1]):
+                v = matrix[i, j]
+                if v != 0.:
+                    self.row = np.append(self.row, i)
+                    self.column = np.append(self.column, j)
+                    self.values = np.append(self.values, v)
+    
+    def diag(self):
+        output = self.copy()
+        mask = (self.row == self.column)
+        output.column = self.column[mask]
+        output.row = self.row[mask]
+        output.values = self.values[mask]
+
+        return output
+    
+    def tril(self, k : int = 0):
+        output = self.copy()
+        mask = (self.row >= self.column + k)
+
+        output.column = self.column[mask]
+        output.row = self.row[mask]
+        output.values = self.values[mask]
+
+        return output
+    
+    def triu(self, k : int = 0):
+        output = self.copy()
+        mask = (self.column >= self.row + k)
+
+        output.column = self.column[mask]
+        output.row = self.row[mask]
+        output.values = self.values[mask]
+
+        return output
+    
+
+    @property
+    def T(self):
+        return type(self)(self.shape[0], self.shape[1], self.column, self.row, self.values)
